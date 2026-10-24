@@ -43,8 +43,13 @@ def create_app(settings: Settings | None = None, repo: DataRepository | None = N
 
     app = FastAPI(title="WindSight API", version=VERSION, lifespan=lifespan,
                   description="Decision-time UK wind forecast accuracy (Elexon WINDFOR vs FUELHH).")
-    app.add_middleware(CORSMiddleware, allow_origins=list(settings.cors_origins), allow_methods=["GET"],
-                       allow_headers=["*"])
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.exception_handler(DataUnavailable)
     async def _unavailable(_: Request, exc: DataUnavailable):
@@ -68,10 +73,12 @@ def create_app(settings: Settings | None = None, repo: DataRepository | None = N
         h = ds.hourly
         return h[(h["start_time"] >= lo) & (h["start_time"] < hi)]
 
+    @app.get("/health", include_in_schema=False)
     @app.get("/api/health")
     def health():
         return {"status": "ok", "version": VERSION, "data_loaded": repo.loaded, "cache_present": repo.has_cache()}
 
+    @app.get("/summary", include_in_schema=False)
     @app.get("/api/summary")
     def summary():
         ds = repo.get_dataset()

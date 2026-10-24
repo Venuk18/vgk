@@ -13,8 +13,13 @@ export class ApiError extends Error {
 }
 
 export function apiBaseUrl(): string {
-  const raw = import.meta.env.VITE_API_BASE_URL || '/api'
-  return raw.replace(/\/$/, '')
+  const raw =
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.NEXT_PUBLIC_API_URL ||
+    import.meta.env.REACT_APP_API_URL ||
+    '/api'
+  return raw.trim().replace(/\/+$/, '')
 }
 
 function detailMessage(body: ApiErrorBody | undefined, fallback: string): { message: string; code?: string } {
@@ -32,22 +37,23 @@ function detailMessage(body: ApiErrorBody | undefined, fallback: string): { mess
   return { message: fallback }
 }
 
-export async function apiGet<T>(path: string, params?: Record<string, string>): Promise<T> {
+export function buildApiUrl(path: string, params?: Record<string, string>): URL {
   const base = apiBaseUrl()
-  const cleanPath = path.startsWith('/') ? path : `/${path}`
-  let url: URL
 
+  // Ensure path starts with /api (avoid duplicate /api/api)
+  let cleanPath = path.startsWith('/') ? path : `/${path}`
+  if (!cleanPath.startsWith('/api/') && cleanPath !== '/api') {
+    cleanPath = `/api${cleanPath}`
+  }
+
+  let url: URL
   if (base.startsWith('http://') || base.startsWith('https://')) {
-    const baseWithoutTrailing = base.replace(/\/+$/, '')
-    const finalPath = baseWithoutTrailing.endsWith('/api') && cleanPath.startsWith('/api/')
-      ? cleanPath.slice(4)
-      : cleanPath
-    url = new URL(finalPath, `${baseWithoutTrailing}/`)
+    // If base ends with /api, remove it so cleanPath provides /api without doubling
+    const rootBase = base.endsWith('/api') ? base.slice(0, -4) : base
+    url = new URL(`${rootBase}${cleanPath}`)
   } else {
-    const finalPath = base === '/api' && !cleanPath.startsWith('/api')
-      ? `/api${cleanPath}`
-      : cleanPath
-    url = new URL(finalPath, window.location.origin)
+    // Relative path on current origin (e.g. /api/health for Vite proxy or Vercel rewrites)
+    url = new URL(cleanPath, window.location.origin)
   }
 
   if (params) {
@@ -55,6 +61,12 @@ export async function apiGet<T>(path: string, params?: Record<string, string>): 
       url.searchParams.set(key, value)
     }
   }
+
+  return url
+}
+
+export async function apiGet<T>(path: string, params?: Record<string, string>): Promise<T> {
+  const url = buildApiUrl(path, params)
 
   let response: Response
   try {

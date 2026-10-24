@@ -76,4 +76,4 @@ def test_revisions(tmp_path):
 
 def test_cors_allows_local_react_dev_origin(tmp_path):
     r = _client(tmp_path).get("/api/health", headers={"Origin": "http://localhost:5173"})
-    assert r.headers.get("access-control-allow-origin") == "http://localhost:5173"
+    assert r.headers.get("access-control-allow-origin") in ("*", "http://localhost:5173")
