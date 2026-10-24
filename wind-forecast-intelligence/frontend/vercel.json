@@ -1,0 +1,8 @@
+﻿{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://vgk-venuk18s-projects.vercel.app/api/"
+    }
+  ]
+}
