@@ -1,8 +1,9 @@
 ﻿{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://vgk-venuk18s-projects.vercel.app/api/"
+      "source": "/api/:path*",
+      "destination": "https://vgk-venuk18s-projects.vercel.app/api/:path*"
     }
   ]
 }
